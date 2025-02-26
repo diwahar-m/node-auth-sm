@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// register conntroller 
+// register controller 
 
 const registerUser = async(req,res)=> {
     try{ 
@@ -89,4 +89,47 @@ const loginUser = async(req, res)=> {
     }
 } 
 
-module.exports = {registerUser, loginUser}
+const changePassword = async(req, res)=> {
+    try {
+        const userId = req.userInfo.userId; 
+        // old & new password 
+        const  {oldPassword, newPassword} = req.body;
+
+        const user = await User.findById(userId);
+
+        if(!user){
+            return res.status(400).json({
+                success: false, 
+                message: "User not found !"
+            })
+        }
+        // comparing old passwords
+        const isPasswordMatch =await bcrypt.compare(oldPassword, user.password); 
+
+        if(!isPasswordMatch){
+           return res.status(400).json({
+                success: false, 
+                message: 'Old password is not correct'
+           })
+        }
+
+        // saving new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        user.password = hashedPassword;
+        user.save();
+
+        return res.status(201).json({
+            success: false, 
+            message: 'Password changed successfully !' 
+        })
+
+    }catch(err){
+         res.status(500).json({
+            success: false, 
+            message: `Something went wrong`
+        })
+    }
+}
+
+module.exports = {registerUser, loginUser, changePassword}
